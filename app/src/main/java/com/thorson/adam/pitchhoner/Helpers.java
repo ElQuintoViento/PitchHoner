@@ -1,9 +1,12 @@
 package com.thorson.adam.pitchhoner;
 
+import android.util.Log;
+
 /**
  * Created by tor on 1/15/17.
  */
 public class Helpers {
+    private static final String TAG = Helpers.class.getSimpleName();
 
     // Uses continued fractions
     private static int[] computeReducedFraction(double number, int level){
@@ -41,7 +44,7 @@ public class Helpers {
                 tuple = new int[]{tuple[1], tuple[0] + tuple[1] * fractionIntegerPart};
             }
         }
-
+        // Log.d(TAG, String.format("Reduced fraction tuple %d/%d", tuple[0], tuple[1]));
         return tuple;
     }
 
