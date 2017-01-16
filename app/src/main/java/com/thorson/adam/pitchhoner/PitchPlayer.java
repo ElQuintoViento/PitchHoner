@@ -32,9 +32,10 @@ public class PitchPlayer {
     }
 
     private int calculatedSampleByteCount(double frequency){
-        int reducedFractionDenominator = Helpers.computeReducedFraction(frequency)[0];
+        int reducedFractionDenominator = Helpers.computeReducedFraction(frequency)[1];
         int byteCount = (reducedFractionDenominator * ((int)PITCHPLAYER_SAMPLE_HZ));
-        Log.d(TAG, String.format("byte count %d", byteCount));
+        Log.d(TAG, String.format("Reduced fraction denominator %d\nbyte count %d",
+                reducedFractionDenominator, byteCount));
         return byteCount;
     }
 
@@ -69,7 +70,7 @@ public class PitchPlayer {
     }
 
     public boolean playFrequency(double frequency, int toneId){
-        Log.d(TAG, String.format("Thread %d", Thread.currentThread().getId()));
+        Log.d(TAG, String.format("Play frequency %.2f Hz toneId %d", frequency, toneId));
         byte[] sound = generateFrequency(frequency, toneId);
         int sampleCount = sound.length / BYTES_PER_SAMPLE;
 
