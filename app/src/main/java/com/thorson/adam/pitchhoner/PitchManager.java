@@ -8,6 +8,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 
+import java.util.ArrayList;
+
 /**
  * Created by tor on 1/11/17.
  */
@@ -70,7 +72,17 @@ public class PitchManager {
 
     private void playFrequency(){
         initPitchPlayer();
-        pitchPlayer.playNote(PITCHPLAYER_F);
+        // pitchPlayer.playNote(
+        //        PITCHPLAYER_C, PITCHPLAYER_INDEX_OCTAVE_MIDDLE, PITCHPLAYER_TONE_SQUARE);
+        PitchPlayerSound pitchPlayerSound = new PitchPlayerSound(
+                PITCHPLAYER_NOTES[PITCHPLAYER_C],
+                PITCHPLAYER_TONE_PURE,
+                0
+        );
+        pitchPlayerSound.addFeature(PITCHPLAYER_TONE_SECONDARY_OSCILLATION);
+
+        pitchPlayer.playSound(pitchPlayerSound);
+        //pitchPlayer.playNote(PITCHPLAYER_C);
     }
 
     public void start(int typeId){
