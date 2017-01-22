@@ -31,35 +31,82 @@ public class PitchPlayer {
         return (frequency * Math.pow(2.0, exponent));
     }
 
-    private int calculatedSampleByteCount(double frequency){
-        int reducedFractionDenominator = Helpers.computeReducedFraction(frequency)[1];
-        int byteCount = (reducedFractionDenominator * ((int)PITCHPLAYER_SAMPLE_HZ));
+    private int calculatedSampleByteCount(PitchPlayerSound pitchPlayerSound){
+        double frequency = pitchPlayerSound.getFrequency();
+        double oscillationFactor = 1;
+        /* NEED to fix this
+        for(Integer feature : pitchPlayerSound.getFeatures()){
+            if(feature == PITCHPLAYER_TONE_SECONDARY_OSCILLATION){
+                oscillationFactor = PITCHPLAYER_OSCILLATION_DEFAULT;
+            }
+        }
+        */
+        int reducedFractionDenominator = Helpers.computeReducedFraction(
+                frequency * oscillationFactor)[1];
+
+        int byteCount = (
+                reducedFractionDenominator * ((int)PITCHPLAYER_SAMPLE_HZ) * BYTES_PER_SAMPLE);
         Log.d(TAG, String.format("Reduced fraction denominator %d\nbyte count %d",
                 reducedFractionDenominator, byteCount));
         return byteCount;
     }
 
-    private byte[] generateFrequency(double frequency, int toneId){
-        int byteCount = calculatedSampleByteCount(frequency);
-        int sampleCount = byteCount / BYTES_PER_SAMPLE;
-        byte[] sound = new byte[byteCount];
+    private double[] getToneSamples(int sampleCount, PitchPlayerSound pitchPlayerSound){
+        double frequency = pitchPlayerSound.getFrequency();
+        double noise = pitchPlayerSound.getNoise();
+        double[] samples = new double[sampleCount];
 
-        double dSample;
-        short sSample;
+        for(int i=0; i < sampleCount; ++i){
+            // Primary shape
+            // Defaulted to PURE
+            double percentage = i / (PITCHPLAYER_SAMPLE_HZ / frequency);
+            samples[i] = Math.sin(2 * Math.PI * percentage);
+            switch(pitchPlayerSound.getPrimaryShape()){
+                case PITCHPLAYER_TONE_PURE:
+                    break;
+                case PITCHPLAYER_TONE_SAW:
+                    double portion = percentage - ((double)((int)percentage));
+                    samples[i] = 1.0 - 2.0 * portion;
+                    break;
+                case PITCHPLAYER_TONE_SQUARE:
+                    samples[i] = (samples[i] >= 0) ? 1 : 0;
+                    break;
+            }
+
+            // Secondary shape
+            for(Integer feature : pitchPlayerSound.getFeatures()){
+                if(feature == PITCHPLAYER_TONE_SECONDARY_OSCILLATION){
+                    double toneFactor = Math.abs(
+                            Math.sin(2 * Math.PI * percentage /
+                                    ((double) PITCHPLAYER_OSCILLATION_DEFAULT)));
+                    samples[i] = toneFactor * samples[i];
+                }
+            }
+
+            if(noise > 0){
+                samples[i] = (1.0 - noise) * samples[i] + noise * Math.random();
+            }
+        }
+
+        return samples;
+    }
+
+    private byte[] generateFrequency(PitchPlayerSound pitchPlayerSound){
+        int byteCount = calculatedSampleByteCount(pitchPlayerSound);
+        int sampleCount = byteCount / BYTES_PER_SAMPLE;
+        double[] samples = getToneSamples(sampleCount, pitchPlayerSound);
+        byte[] sound = new byte[byteCount];
         int sampleIndex = 0;
-        StringBuilder stringBuilder = new StringBuilder();
+        short sSample;
+
         for (int i = 0; i < sampleCount; ++i) {
-            dSample = Math.sin(2 * Math.PI * i / (PITCHPLAYER_SAMPLE_HZ / frequency));
-            stringBuilder.append(String.format("%.4f,", dSample));
             // Convert to 16 bit; assumes buffer is normalized
             // Maximum signed 16-bit, amplitude
-            sSample = (short) ((dSample * 32767.0));
+            sSample = (short) ((samples[i] * 32767.0));
             // First byte is lower order
             sound[sampleIndex++] = (byte)(sSample & 0x00ff);
             sound[sampleIndex++] = (byte)((sSample & 0xff00) >> 8);
         }
-
-        Log.d(TAG, stringBuilder.toString());
 
         return sound;
     }
@@ -69,9 +116,10 @@ public class PitchPlayer {
         play = false;
     }
 
-    public boolean playFrequency(double frequency, int toneId){
-        Log.d(TAG, String.format("Play frequency %.2f Hz toneId %d", frequency, toneId));
-        byte[] sound = generateFrequency(frequency, toneId);
+    public boolean playSound(PitchPlayerSound pitchPlayerSound){
+        Log.d(TAG, String.format("Play frequency %.2f Hz toneId %d",
+                pitchPlayerSound.getFrequency(), pitchPlayerSound.getPrimaryShape()));
+        byte[] sound = generateFrequency(pitchPlayerSound);
         int sampleCount = sound.length / BYTES_PER_SAMPLE;
 
         audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
@@ -88,8 +136,15 @@ public class PitchPlayer {
         return true;
     }
 
+    public boolean playFrequency(double frequency, int toneId, boolean hasNoise){
+        double noise = (hasNoise ? PITCHPLAYER_NOISE_DEFAULT : 0);
+        PitchPlayerSound pitchPlayerSound = new PitchPlayerSound(frequency, toneId, noise);
+
+        return playSound(pitchPlayerSound);
+    }
+
     public boolean playFrequency(double frequency){
-        return playFrequency(frequency, PITCHPLAYER_TONE_PURE);
+        return playFrequency(frequency, PITCHPLAYER_TONE_PURE, false);
     }
 
     public boolean playNote(int noteIndex, int octaveIndex, int toneId){
@@ -98,7 +153,7 @@ public class PitchPlayer {
             return false;
         }
 
-        return playFrequency(calculateNoteToFrequency(noteIndex, octaveIndex), toneId);
+        return playFrequency(calculateNoteToFrequency(noteIndex, octaveIndex), toneId, false);
     }
 
     public boolean playNote(int noteIndex, int octaveIndex){
