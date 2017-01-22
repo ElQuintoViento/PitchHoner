@@ -9,8 +9,17 @@ public class PitchPlayerConstants {
     public static final int BITS_PER_SAMPLE = 16;
     public static final int BYTES_PER_SAMPLE = BITS_PER_SAMPLE / 8;
     // Tones
-    //
+    // Primary Shape
     public static final int PITCHPLAYER_TONE_PURE = 0;
+    public static final int PITCHPLAYER_TONE_SAW = 1;
+    public static final int PITCHPLAYER_TONE_SQUARE = 2;
+    // Secondary Shape
+    public static final int PITCHPLAYER_TONE_SECONDARY_OSCILLATION = 0;
+    // Oscillation
+    public static final int PITCHPLAYER_OSCILLATION_DEFAULT = 5;
+    // Noise
+    public static final double PITCHPLAYER_NOISE_DEFAULT = 0.1;
+    public static final double PITCHPLAYER_NOISE_MAX = 0.25;
     // Frequency
     // Notes
     public static final int PITCHPLAYER_C = 0;
